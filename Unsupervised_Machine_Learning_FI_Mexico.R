@@ -1,0 +1,357 @@
+#### importar datos por productos######
+#Credito
+Credito <- read.csv("C:/Users/LENOVO/Desktop/PhD Colpos/Class Cuatri 1/Project_enif2021/Credito_enif2021.csv")
+
+# Ahorro
+Ahorro <- read.csv("C:/Users/LENOVO/Desktop/PhD Colpos/Class Cuatri 1/Project_enif2021/Cuenta_ahorro.csv")
+
+# Seguros
+Seguro <- read.csv("C:/Users/LENOVO/Desktop/PhD Colpos/Class Cuatri 1/Project_enif2021/Cuentas_Seguros_enif2021.csv")
+# La base seguro está lleno de valores faltantes
+# Son aquellos que no cuentan con los seguros
+# Reemplazar los NA por cero
+library(tidyverse)
+Seguro <- Seguro %>% replace(is.na(.), 0)
+View(Seguro)
+remote: Repository not found.
+git remote add origin https://github.com/manolor/Financial_Inclusion_Mexixo.git
+git branch -M main
+git push -u origin main
+
+
+
+
+# Load library in R
+library(ca)
+library(FactoMineR)
+library(factoextra)
+
+###### Credito MCA #####
+ACM_credito=mjca(Credito, lambda="Burt")
+plot(ACM_credito)
+summary(ACM_credito)
+# index 1: 27.4% and index 2: 11.6%
+
+###### Ahorro MCA #####
+ACM_ahorro=mjca(Ahorro, lambda="Burt")
+plot(ACM_ahorro)
+summary(ACM_ahorro)
+# index 1 31.6% and index 2: 14.9%
+
+###### Seguro MCA #####
+ACM_seguro=mjca(Seguro, lambda="Burt")
+plot(ACM_seguro)
+summary(ACM_seguro)
+# Index 1: 47.7%  and index 2: 9%
+
+
+
+##### MCA with FactomMineR
+library(FactoMineR)
+library(factoextra)
+#Error in which(unlist(lapply(listModa, is.numeric))) : 
+#argument to 'which' is not logical
+# aplicar cambios a la base de datos
+Ahorro1=lapply(Ahorro[sapply(Ahorro, is.numeric)], as.factor)
+Ahorro2=as.data.frame(Ahorro1)
+Fact_MCA_Ahorro=MCA(Ahorro2)
+
+Seguro1=lapply(Seguro[sapply(Seguro, is.numeric)], as.factor)
+Seguro2=as.data.frame(Seguro1)
+Fact_MCA_Seguro=MCA(Seguro2)
+
+Credito1=lapply(Credito[sapply(Credito, is.numeric)], as.factor)
+Credito2=as.data.frame(Credito1)
+Fact_MCA_Credito=MCA(Credito2)
+
+fviz_contrib(Facto.MCA.Assurance, choice = "var", axes = 1, top = 5)
+fviz_contrib(Facto.MCA.Credit, choice = "var", axes = 1, top = 5)
+fviz_contrib(Fact_MCA_Ahorro, choice = "var", axes = 1, top = 3)
+
+
+
+##### Index from MCA in CA library####
+# Separar cada indice
+#####Ahorro####
+Ahorro_MCA=ACM_ahorro$rowcoord
+View(Ahorro_MCA)
+IndiceAhorro=as.data.frame(Ahorro_MCA[,1])
+View(IndiceAhorro)
+# La observacion 9 tiene 4 productos financieros y tiene -13 de indice
+#El valor del indice se multiplica por -1
+Index_ahorro=IndiceAhorro*-1
+View(Index_ahorro)
+
+##### Credito ####
+Credito_MCA=ACM_credito$rowcoord
+Indicecredito=as.data.frame(Credito_MCA[,1])
+View(Indicecredito)
+
+
+##### el indice de seguro es####
+SeguroACM=ACM_seguro$rowcoord
+Indiceseguro=as.data.frame(SeguroACM[,1])
+View(Indiceseguro)
+
+
+
+
+
+###### Indice CATPCA para Seguro #####
+library(Gifi)
+#Realizar el analisis de componente principal categorico
+SeguroPCA=princals(Seguro2,  ordinal = FALSE)
+summary(SeguroPCA)
+plot(SeguroPCA)
+# Dim 1 tiene 24.4247 % de la varianza
+Seg_index_all=SeguroPCA$objectscores
+Seg_index=Seg_index_all[,1]
+Seg_index=as.data.frame(Seg_index)
+View(Seg_index)
+
+
+###### Indice CATPCA para Credito ######
+#Realizar el analisis de componente principal categorico
+CreditoPCA=princals(Credito2,  ordinal = FALSE)
+summary(CreditoPCA)
+# Dim 1 tiene 17.9376 % de la varianza
+Cred_index_all=CreditoPCA$objectscores
+Cred_index=Cred_index_all[,1]
+Cred_index=as.data.frame(Cred_index)
+View(Cred_index)
+
+
+###### Indice CATPCA para Ahorro ######
+AhorroPCA=princals(Ahorro,  ordinal = FALSE)
+summary(AhorroPCA)
+# Dim 1 tiene 19.5862 % de la varianza
+Ahorro_index_all=AhorroPCA$objectscores
+Ahorro_index=Ahorro_index_all[,1]
+Ahorro_index=as.data.frame(Ahorro_index)
+View(Ahorro_index)
+
+
+
+
+
+
+#### Suma de componentes #####
+# la version previa del k-mean presentan algunos sin productos financieros
+#....
+Indicefinal_Ahorro=(ACM_ahorro$rowcoord[,1]*Ahorro$Ahorro_nomina)/9*sqrt(0.19586181)+
+  (ACM_ahorro$rowcoord[,2]*Ahorro$Ahorro_pension)/9*sqrt(0.13442920)+
+  (ACM_ahorro$rowcoord[,3]*Ahorro$C_apo_gob)/9*sqrt(0.11166340)+
+  (ACM_ahorro$rowcoord[,4]*Ahorro$C_Ahorro)/9*sqrt(0.10348911)+
+  (ACM_ahorro$rowcoord[,5]*Ahorro$C_Cheque)/9*sqrt(0.09905443)+
+  (ACM_ahorro$rowcoord[,6]*Ahorro$Dep_plazo_F)/9*sqrt(0.09395837)+
+  (ACM_ahorro$rowcoord[,7]*Ahorro$C_inversion)/9*sqrt(0.13442920)+
+  (ACM_ahorro$rowcoord[,8]*Ahorro$C_internet)/9*sqrt(0.08416895)+
+  (ACM_ahorro$rowcoord[,9]*Ahorro$C_otro)/9*sqrt(0.07967512)
+Indicefinal_Ahorro=as.data.frame(Indicefinal_Ahorro)
+
+# Los valores son negativos, multiplicar por menos uno
+Indicefinal_Ahorro=abs(Indicefinal_Ahorro*-1)
+View(Indicefinal_Ahorro)
+summary(Indicefinal_Ahorro)
+sd(Indicefinal_Ahorro$Indicefinal_Ahorro)
+View(Ahorro)
+
+##### clustering Ahorro #####
+# Get 6 components with 80% of variance
+G_Ahorro=ACM_ahorro$rowcoord[,1:6]
+# Compute the distance matrix
+Mx_Ahorro=dist(G_Ahorro, method = "euclid")
+# Realizar el agrupamiento
+Clust_ahorro=hclust(Mx_Ahorro, method = "ward.D")
+# Definir la cantidad de grupos
+Group_Saving=cutree(Clust_ahorro, k=2)
+table(Group_Saving)
+# Poner en base de datos para comparar con base inicial
+DataB_ahorro=data.frame(Group_Saving)
+View(DataB_ahorro)
+View(Ahorro)
+
+
+
+
+
+##### Analisis de Credito, INDICE Final####
+
+Indicefinal_Credito=(ACM_credito$rowcoord[,1]*Credito$Cred_dep)/9*sqrt(0.17937581)+
+  (ACM_credito$rowcoord[,2]*Credito$Tarjeta_cred)/9*sqrt(0.11676182)+
+  (ACM_credito$rowcoord[,3]*Credito$Cred_nom)/9*sqrt(0.11264844)+
+  +(ACM_credito$rowcoord[,4]*Credito$Cred_personal)/9*sqrt(0.11000054)+
+  (ACM_credito$rowcoord[,5]*Credito$Cred_auto)/9*sqrt(0.106647841)+
+  (ACM_credito$rowcoord[,6]*Credito$Cred_vivienda)/9*sqrt(0.10466590)+
+  (ACM_credito$rowcoord[,7]*Credito$Cred_grupal)/9*sqrt(0.09829850)+
+  (ACM_credito$rowcoord[,8]*Credito$Cred_internet)/9*sqrt(0.09451778)+
+  (ACM_credito$rowcoord[,9]*Credito$Credito_otro)/9*sqrt(0.07708337)
+Indicefinal_Credito=as.data.frame(Indicefinal_Credito)
+View(Indicefinal_Credito)
+summary(Indicefinal_Credito)
+sd(Indicefinal_Credito$Indicefinal_Credito)
+
+##### Cluster CRedito####
+# USar 7 dimensiones, son 87% de la varianza
+C_cred=ACM_credito$rowcoord[,1:7]
+# calcular la matriz de distancia
+Dmatriz_C=dist(C_cred, method = "euclid")
+# Realizar el analisis de conglomerado
+Clust_cred=hclust(Dmatriz_C, method = "ward.D")
+# Definir dos grupos
+Agrupacion=cutree(Clust_cred, k=2)
+# poner en una base de datos
+Database_G_C=data.frame(Agrupacion)
+View(Database_G_C)
+View(Credito) # para comparar
+table(Agrupacion)
+
+
+
+
+
+##### Analisis de seguro, indice#####
+Indicefinal_Seguro=
+  (ACM_seguro$rowcoord[,1]*Seguro$Seg_gob)/(10*sqrt(0.24424673))+
+  (ACM_seguro$rowcoord[,2]*Seguro$Seg_vida)/(10*sqrt(0.10586743))+
+  (ACM_seguro$rowcoord[,3]*Seguro$Seg_med)/(10*sqrt(0.09894771))+
+  (ACM_seguro$rowcoord[,4]*Seguro$Seg_auto)/(10*sqrt(0.09823923))+
+  (ACM_seguro$rowcoord[,5]*Seguro$Seg_acc)/(10*sqrt(0.08699038))+
+  (ACM_seguro$rowcoord[,6]*Seguro$Seg_casa)/(10*sqrt(0.08597839))+
+  (ACM_seguro$rowcoord[,7]*Seguro$Seg_edu)/(10*sqrt(0.08067066))+
+  (ACM_seguro$rowcoord[,8]*Seguro$Seg_retiro)/(10*sqrt(0.07605143))+
+  (ACM_seguro$rowcoord[,9]*Seguro$Seg_otro)/(10*sqrt(0.06494232))+
+  (ACM_seguro$rowcoord[,10]*Seguro$Seg_Afore)/(10*sqrt(0.0580657))
+Indicefinal_Seguro=as.data.frame(Indicefinal_Seguro)
+View(Indicefinal_Seguro)
+summary(Indicefinal_Seguro)
+sd(Indicefinal_Seguro$Indicefinal_Seguro)
+
+##### cluster analisis seguro
+Base_seguro=ACM_seguro$rowcoord[,1:6]
+# 6 componentes asimilan 80% de la varianza
+# matriz de Distancia
+M_D=dist(Base_seguro, method = "euclid")
+
+# agrupamiento
+G_seguro=hclust(M_D, method = "ward.D")
+G2=cutree(G_seguro, k=2)
+# Poner como base de datos
+Datagrupos=data.frame(G2)
+View(Datagrupos)
+table(G2)
+
+
+
+
+
+
+##### Calcular porcentajes#####
+# Productos de ahorro
+table(Ahorro$Ahorro_nomina)
+3699/13554 # Porcentaje si
+table(Ahorro$Ahorro_pension)
+949/13554
+table(Ahorro$C_apo_gob)
+1331 /13554
+table(Ahorro$C_Ahorro)
+2417/13554
+table(Ahorro$C_Cheque)
+281/13554
+table(Ahorro$C_inversion)
+163/13554
+table(Ahorro$Dep_plazo_F)
+(170/13554)*100
+table(Ahorro$C_otro)
+(5/13554)*100
+table(Ahorro$C_internet)
+(337/13554)*100
+
+
+# producto: credito
+table(Credito$Cred_dep)
+(2736/13554)*100
+table(Credito$Tarjeta_cred)
+(1442/13554)*100
+table(Credito$Cred_nom)
+(325/13554)*100
+table(Credito$Cred_personal)
+(541/13554)*100
+table(Credito$Cred_auto)
+(246/13554)*100
+table(Credito$Cred_vivienda)
+(939/13554)*100
+table(Credito$Cred_grupal)
+(301/13554)*100
+table(Credito$Cred_internet)
+(58/13554)*100
+table(Credito$Credito_otro)
+(25/13554)*100
+
+
+# producto : seguro
+table(Seguro$Seg_gob)
+(48/13554)*100
+table(Seguro$Seg_vida)
+(1908/13554)*100
+table(Seguro$Seg_med)
+(826/13554)*100
+table(Seguro$Seg_auto)
+(1360/13554)*100
+table(Seguro$Seg_acc)
+(360/13554)*100
+table(Seguro$Seg_casa)
+(297/13554)*100
+table(Seguro$Seg_edu)
+(94/13554)*100
+table(Seguro$Seg_retiro)
+(137/13554)*100
+table(Seguro$Seg_otro)
+(18/13554)*100
+table(Seguro$Seg_Afore)
+(5367/13554)*100
+
+
+
+##### tabla de contigencia #####
+# Region y localidad
+Localidad_region <- read.csv("C:/Users/LENOVO/Desktop/PhD Colpos/Class Cuatri 1/Project_enif2021/Localidad_region.csv")
+# Agregar las variables cluster
+Localidad_region$Ahorro=DataB_ahorro$Group_Saving
+Localidad_region$Credito=Database_G_C$Agrupacion
+Localidad_region$Seguro=Datagrupos$G2
+head(Localidad_region)
+
+# Ver tabla de contigencia
+Cont_tab=Localidad_region
+table(Cont_tab$T_localidad, Cont_tab$Ahorro)
+table(Cont_tab$T_localidad, Cont_tab$Seguro)
+table(Cont_tab$T_localidad, Cont_tab$Credito)
+
+chisq.test(Cont_tab$T_localidad, Cont_tab$Ahorro)
+chisq.test(Cont_tab$T_localidad, Cont_tab$Seguro)
+chisq.test(Cont_tab$T_localidad, Cont_tab$Credito)
+
+# Regiones
+table(Cont_tab$Region, Cont_tab$Ahorro)
+table(Cont_tab$Region, Cont_tab$Credito)
+table(Cont_tab$Region, Cont_tab$Seguro)
+
+chisq.test(Cont_tab$Region, Cont_tab$Ahorro)
+chisq.test(Cont_tab$Region, Cont_tab$Credito)
+chisq.test(Cont_tab$Region, Cont_tab$Seguro)
+
+
+# reason for saving
+Savingreason <- read.csv("C:/Users/LENOVO/Desktop/PhD Colpos/Class Cuatri 1/Project_enif2021/Savingreason.csv")
+table(Savingreason$Gusto)  # yes 1486
+table(Savingreason$Ganar_interes) # yes 156
+table(Savingreason$Sueldo)  # yes 3456
+table(Savingreason$Administracion)  #yes 434
+table(Savingreason$Apoyo_gob)  # yes 1436
+table(Savingreason$Asegurar_ahorro) #yes 580
+table(Savingreason$Transaccion) # yes 389
+table(Savingreason$Otro)  # yes 138
+table(Savingreason$Otro.1) # yes 42
+table(Savingreason$Nosabe) # yes 496
+
